@@ -1,0 +1,9 @@
+{
+  "name": "Calculator",
+  "description": "A sci-fi HUD styled calculator with scientific calculation, boolean algebra, programmer tools and matrix operations. Adaptive UI for phones and tablets.",
+  "version": "1.0.0",
+  "ageRating": "3+",
+  "type": "app",
+  "containsAds": false,
+  "author": "Mohammad Mahfuz Rahman"
+}
