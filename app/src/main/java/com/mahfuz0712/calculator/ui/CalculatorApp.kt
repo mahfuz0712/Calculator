@@ -13,13 +13,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
@@ -39,6 +42,9 @@ fun CalculatorApp(amber: Boolean, onToggleTheme: () -> Unit) {
         val bool = remember { BoolState() }
         val mat = remember { MatState() }
         var tab by remember { mutableIntStateOf(0) }
+        val ctx = LocalContext.current
+        var update by remember { mutableStateOf<UpdateInfo?>(null) }
+        LaunchedEffect(Unit) { if (isOnline(ctx)) update = checkUpdate(ctx).second }
         val tablet = LocalConfiguration.current.screenWidthDp >= 600
         val current = Tab.values()[tab]
 
@@ -48,8 +54,16 @@ fun CalculatorApp(amber: Boolean, onToggleTheme: () -> Unit) {
                 Tab.BOOL -> BooleanScreen(bool, tablet)
                 Tab.PROG -> ProgrammerScreen(prog, tablet)
                 Tab.MATRIX -> MatrixScreen(mat, tablet)
-                Tab.ABOUT -> AboutScreen(tablet)
+                Tab.ABOUT -> AboutScreen(tablet) { update = it }
             }
+        }
+
+        update?.let { u ->
+            UpdateDialog(
+                u, appVersion(ctx),
+                onUpdate = { openUrl(ctx, u.apkUrl); update = null },
+                onCancel = { update = null }
+            )
         }
 
         HudBackground(Modifier.fillMaxSize()) {

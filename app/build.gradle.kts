@@ -3,6 +3,9 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 
+// Bump ONLY this when you release (tag the GitHub release with the same number, e.g. v1.0.1)
+val appVersionName = "1.0.1"
+
 android {
     namespace = "com.mahfuz0712.calculator"
     compileSdk = 34
@@ -11,8 +14,21 @@ android {
         applicationId = "com.mahfuz0712.calculator"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0.0"
+        versionName = appVersionName
+        versionCode = appVersionName.split(".").let { it[0].toInt() * 10000 + it[1].toInt() * 100 + it[2].toInt() }
+    }
+
+    // Same debug key on every CI build, so a new APK installs over the old one as an update
+    val ks = file("debug.keystore")
+    if (ks.exists()) {
+        signingConfigs {
+            getByName("debug") {
+                storeFile = ks
+                storePassword = "android"
+                keyAlias = "androiddebugkey"
+                keyPassword = "android"
+            }
+        }
     }
 
     buildTypes {

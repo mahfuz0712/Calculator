@@ -12,14 +12,21 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mahfuz0712.calculator.AppInfo
+import kotlinx.coroutines.launch
 
 @Composable
-fun AboutScreen(tablet: Boolean) {
+fun AboutScreen(tablet: Boolean, onUpdateFound: (UpdateInfo) -> Unit) {
     val uri = LocalUriHandler.current
     val open: (String) -> Unit = { link -> runCatching { uri.openUri(link) } }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
@@ -28,6 +35,8 @@ fun AboutScreen(tablet: Boolean) {
                 Column(Modifier.weight(1f)) {
                     AppPanel(Modifier.fillMaxWidth())
                     Spacer(Modifier.height(10.dp))
+                    UpdatePanel(onUpdateFound, Modifier.fillMaxWidth())
+                    Spacer(Modifier.height(10.dp))
                     MoreAppsPanel(open, Modifier.fillMaxWidth())
                 }
                 Spacer(Modifier.width(10.dp))
@@ -35,6 +44,8 @@ fun AboutScreen(tablet: Boolean) {
             }
         } else {
             AppPanel(Modifier.fillMaxWidth())
+            Spacer(Modifier.height(8.dp))
+            UpdatePanel(onUpdateFound, Modifier.fillMaxWidth())
             Spacer(Modifier.height(8.dp))
             AuthorPanel(open, Modifier.fillMaxWidth())
             Spacer(Modifier.height(8.dp))
@@ -46,15 +57,51 @@ fun AboutScreen(tablet: Boolean) {
 @Composable
 private fun AppPanel(modifier: Modifier) {
     val c = Hud.colors
+    val version = appVersion(LocalContext.current)
     HudPanel(modifier, "SYSTEM") {
         HudText("◈ ${AppInfo.NAME.uppercase()}", color = c.primary, size = 28.sp, bold = true)
-        HudText("VERSION ${AppInfo.VERSION}", color = c.accent, size = 12.sp)
+        HudText("VERSION $version", color = c.accent, size = 12.sp)
         Spacer(Modifier.height(8.dp))
         HudText(
             "Scientific calculation, boolean algebra, programmer tools and matrix operations in a sci-fi HUD interface. Adaptive layout for phones and tablets.",
             color = c.text,
             size = 13.sp
         )
+    }
+}
+
+@Composable
+private fun UpdatePanel(onUpdateFound: (UpdateInfo) -> Unit, modifier: Modifier) {
+    val c = Hud.colors
+    val ctx = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var status by remember { mutableStateOf("") }
+    HudPanel(modifier, "UPDATES") {
+        HudButton(
+            label = "CHECK FOR UPDATES",
+            modifier = Modifier.fillMaxWidth().height(46.dp),
+            kind = KeyKind.OP,
+            fontSize = 13.sp
+        ) {
+            scope.launch {
+                status = "CHECKING..."
+                if (!isOnline(ctx)) {
+                    status = "NO INTERNET CONNECTION"
+                    return@launch
+                }
+                val (ok, info) = checkUpdate(ctx)
+                status = when {
+                    !ok -> "CHECK FAILED"
+                    info == null -> "UP TO DATE"
+                    else -> "NEW VERSION AVAILABLE: v${info.version}"
+                }
+                if (info != null) onUpdateFound(info)
+            }
+        }
+        if (status.isNotEmpty()) {
+            Spacer(Modifier.height(8.dp))
+            HudText(status, color = c.dim, size = 12.sp)
+        }
     }
 }
 
